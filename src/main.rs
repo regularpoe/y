@@ -134,8 +134,8 @@ fn edit(
     stmt.execute(params.as_slice())
 }
 
-fn delete() {
-    println!("Delete called");
+fn delete(conn: &Connection, id: i32) -> Result<usize> {
+    conn.execute("DELETE FROM logs WHERE id = ?1", [&id])
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -182,7 +182,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::Delete { id } => {
-            delete();
+            delete(&conn, id)?;
+            println!("Record deleted!");
         }
     }
 
