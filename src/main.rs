@@ -1,4 +1,4 @@
-use chrono::NaiveDate;
+use chrono::{Local, NaiveDate};
 use clap::{Parser, Subcommand};
 use rusqlite::{Connection, Result};
 
@@ -11,11 +11,21 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    Add { date: String, description: String },
+    Add {
+        description: String,
+        date: Option<String>,
+    },
     ViewAll,
-    View { date: String },
-    Edit { id: i32, description: String },
-    Delete { id: i32 },
+    View {
+        date: String,
+    },
+    Edit {
+        id: i32,
+        description: String,
+    },
+    Delete {
+        id: i32,
+    },
 }
 
 #[derive(Debug)]
@@ -41,8 +51,13 @@ fn init_db() -> Result<Connection> {
 
 // CRUD
 
-fn add() {
-    println!("Add called");
+fn add(conn: &Connection, date: Option<NaiveDate>, description: &str) -> Result<usize> {
+    let date = date.unwrap_or_else(|| Local::now().naive_local().into());
+    let formatted_date = date.format("%Y-%m-%d").to_string();
+
+    println!("Today is {}", formatted_date);
+
+    Ok(1)
 }
 
 fn view_all() {
@@ -67,8 +82,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let conn = init_db()?;
 
     match cli.command {
-        Commands::Add { date, description } => {
-            add();
+        Commands::Add { description, date } => {
+            let date = date
+                .as_deref()
+                .map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d"))
+                .transpose()?;
+
+            add(&conn, date, &description);
         }
         Commands::ViewAll => {
             view_all();
