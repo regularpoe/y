@@ -55,9 +55,10 @@ fn add(conn: &Connection, date: Option<NaiveDate>, description: &str) -> Result<
     let date = date.unwrap_or_else(|| Local::now().naive_local().into());
     let formatted_date = date.format("%Y-%m-%d").to_string();
 
-    println!("Today is {}", formatted_date);
-
-    Ok(1)
+    conn.execute(
+        "INSERT INTO logs (date, description) VALUES (?1, ?2)",
+        [&formatted_date, &description.to_string()],
+    )
 }
 
 fn view_all() {
@@ -88,7 +89,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d"))
                 .transpose()?;
 
-            add(&conn, date, &description);
+            add(&conn, date, &description)?;
         }
         Commands::ViewAll => {
             view_all();
