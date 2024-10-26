@@ -2,6 +2,8 @@ use chrono::{Local, NaiveDate};
 use clap::{Parser, Subcommand};
 use rusqlite::{Connection, OptionalExtension, Result};
 
+use std::fmt;
+
 #[derive(Parser)]
 #[command(name = "y")]
 struct Cli {
@@ -36,6 +38,16 @@ struct Log {
     id: i32,
     date: NaiveDate,
     description: String,
+}
+
+impl fmt::Display for Log {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(
+            f,
+            "Record ID: {}\nDate: {}\nDescription: {}",
+            self.id, self.date, self.description
+        )
+    }
 }
 
 fn init_db() -> Result<Connection> {
@@ -118,7 +130,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             view_by_date();
         }
         Commands::ViewById { id } => match view_by_id(&conn, id)? {
-            Some(log) => println!("{:?}", log),
+            Some(log) => println!("{}", log),
             None => println!("No records found with ID: {}", id),
         },
         Commands::Edit { id, description } => {
