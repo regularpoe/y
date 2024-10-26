@@ -1,5 +1,6 @@
 use chrono::{Local, NaiveDate};
 use clap::{Parser, Subcommand};
+use dirs::home_dir;
 use rusqlite::{Connection, OptionalExtension, Result};
 
 use std::fmt;
@@ -52,7 +53,9 @@ impl fmt::Display for Log {
 }
 
 fn init_db() -> Result<Connection> {
-    let conn = Connection::open("y.db")?;
+    let home = home_dir().expect("Couldn't determine home directory");
+    let db_path = home.join("y.db");
+    let conn = Connection::open(&db_path)?;
     conn.execute(
         "CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
