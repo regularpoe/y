@@ -1,6 +1,6 @@
 use chrono::{Local, NaiveDate};
 use clap::{Parser, Subcommand};
-use rusqlite::{Connection, Result};
+use rusqlite::{Connection, OptionalExtension, Result};
 
 #[derive(Parser)]
 #[command(name = "y")]
@@ -18,6 +18,9 @@ enum Commands {
     ViewAll,
     View {
         date: String,
+    },
+    ViewById {
+        id: i32,
     },
     Edit {
         id: i32,
@@ -69,6 +72,22 @@ fn view_by_date() {
     println!("View by date called");
 }
 
+fn view_by_id(conn: &Connection, id: i32) -> Result<Option<Log>> {
+    let mut stmt = conn.prepare("SELECT id, date, description FROM logs WHERE id = ?1")?;
+
+    let log = stmt
+        .query_row([id], |row| {
+            Ok(Log {
+                id: row.get::<_, i32>(0)?,
+                date: row.get::<_, String>(1)?.parse().unwrap(),
+                description: row.get::<_, String>(2)?,
+            })
+        })
+        .optional()?;
+
+    Ok(log)
+}
+
 fn edit() {
     println!("Edit called");
 }
@@ -90,6 +109,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .transpose()?;
 
             add(&conn, date, &description)?;
+            println!("Record added!");
         }
         Commands::ViewAll => {
             view_all();
@@ -97,6 +117,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         Commands::View { date } => {
             view_by_date();
         }
+        Commands::ViewById { id } => match view_by_id(&conn, id)? {
+            Some(log) => println!("{:?}", log),
+            None => println!("No records found with ID: {}", id),
+        },
         Commands::Edit { id, description } => {
             edit();
         }
