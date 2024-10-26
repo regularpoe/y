@@ -26,7 +26,8 @@ enum Commands {
     },
     Edit {
         id: i32,
-        description: String,
+        date: Option<String>,
+        description: Option<String>,
     },
     Delete {
         id: i32,
@@ -100,8 +101,37 @@ fn view_by_id(conn: &Connection, id: i32) -> Result<Option<Log>> {
     Ok(log)
 }
 
-fn edit() {
-    println!("Edit called");
+fn edit(
+    conn: &Connection,
+    id: i32,
+    date: Option<NaiveDate>,
+    description: Option<&str>,
+) -> Result<usize> {
+    let mut query = String::from("UPDATE logs SET ");
+    let mut params: Vec<Box<dyn rusqlite::ToSql>> = Vec::new();
+
+    if let Some(date) = date {
+        let formatted_date = date.format("%Y-%m-%d").to_string();
+        query.push_str("date = ?1");
+        params.push(Box::new(formatted_date));
+    }
+
+    if let Some(description) = description {
+        if !params.is_empty() {
+            query.push_str(", ");
+        }
+        query.push_str("description = ?2");
+        params.push(Box::new(description.to_string()));
+    }
+
+    query.push_str(" WHERE id = ?3");
+    params.push(Box::new(id));
+
+    let mut stmt = conn.prepare(&query)?;
+
+    let params: Vec<&(dyn rusqlite::ToSql + 'static)> = params.iter().map(|p| p.as_ref()).collect();
+
+    stmt.execute(params.as_slice())
 }
 
 fn delete() {
@@ -133,8 +163,23 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             Some(log) => println!("{}", log),
             None => println!("No records found with ID: {}", id),
         },
-        Commands::Edit { id, description } => {
-            edit();
+        Commands::Edit {
+            id,
+            date,
+            description,
+        } => {
+            let date = date
+                .as_deref()
+                .map(|d| NaiveDate::parse_from_str(d, "%Y-%m-%d"))
+                .transpose()?;
+
+            edit(&conn, id, date, description.as_deref())?;
+            println!("Record updated!");
+
+            match view_by_id(&conn, id) {
+                Ok(log) => println!("{:?}", log),
+                Err(err) => println!("Cannot fetch record with ID {}", id),
+            }
         }
         Commands::Delete { id } => {
             delete();
