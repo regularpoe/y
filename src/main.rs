@@ -91,8 +91,18 @@ fn view_all(conn: &Connection) -> Result<Vec<Log>> {
     Ok(logs)
 }
 
-fn view_by_date() {
-    println!("View by date called");
+fn view_logs_by_date(conn: &Connection, date: NaiveDate) -> Result<Vec<Log>> {
+    let mut stmt = conn.prepare("SELECT id, date, description FROM logs WHERE date = ?1")?;
+    let log_iter = stmt.query_map([date.to_string()], |row| {
+        Ok(Log {
+            id: row.get::<_, i32>(0)?,
+            date: row.get::<_, String>(1)?.parse().unwrap(),
+            description: row.get::<_, String>(2)?,
+        })
+    })?;
+
+    let logs: Vec<Log> = log_iter.map(|log| log.unwrap()).collect();
+    Ok(logs)
 }
 
 fn view_by_id(conn: &Connection, id: i32) -> Result<Option<Log>> {
@@ -170,7 +180,11 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             }
         }
         Commands::View { date } => {
-            view_by_date();
+            let date = NaiveDate::parse_from_str(&date, "%Y-%m-%d")?;
+            let records = view_logs_by_date(&conn, date)?;
+            for record in records {
+                println!("\n{}\n", record);
+            }
         }
         Commands::ViewById { id } => match view_by_id(&conn, id)? {
             Some(log) => println!("{}", log),
