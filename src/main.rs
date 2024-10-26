@@ -205,7 +205,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 
             match view_by_id(&conn, id) {
                 Ok(log) => println!("{}", log.unwrap()),
-                Err(err) => println!("Cannot fetch record with ID {}", id),
+                Err(_) => println!("Cannot fetch record with ID {}", id),
             }
         }
         Commands::Delete { id } => {
