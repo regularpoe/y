@@ -77,8 +77,18 @@ fn add(conn: &Connection, date: Option<NaiveDate>, description: &str) -> Result<
     )
 }
 
-fn view_all() {
-    println!("View all called");
+fn view_all(conn: &Connection) -> Result<Vec<Log>> {
+    let mut stmt = conn.prepare("SELECT id, date, description FROM logs")?;
+    let log_iter = stmt.query_map([], |row| {
+        Ok(Log {
+            id: row.get::<_, i32>(0)?,
+            date: row.get::<_, String>(1)?.parse().unwrap(),
+            description: row.get::<_, String>(2)?,
+        })
+    })?;
+
+    let logs: Vec<Log> = log_iter.map(|log| log.unwrap()).collect();
+    Ok(logs)
 }
 
 fn view_by_date() {
@@ -154,7 +164,10 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
             println!("Record added!");
         }
         Commands::ViewAll => {
-            view_all();
+            let records = view_all(&conn)?;
+            for record in records {
+                println!("\n{}\n", record);
+            }
         }
         Commands::View { date } => {
             view_by_date();
