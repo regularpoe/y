@@ -9,3 +9,9 @@ clap = { version = "4.5.20", features = ["derive"] }
 dirs = "5.0.1"
 rusqlite = { version = "0.32.1", features = ["bundled"] }
 
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 'z'
+panic = 'abort'
+
